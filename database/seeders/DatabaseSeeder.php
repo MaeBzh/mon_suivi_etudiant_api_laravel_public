@@ -13,7 +13,7 @@ class DatabaseSeeder extends Seeder{
      */
     public function run()
     {
-        if (App::environment() !== 'production') {
+        // if (App::environment() !== 'production') {
             $this->call([
                 ContactSeeder::class,
                 DebriefSeeder::class,
@@ -23,6 +23,6 @@ class DatabaseSeeder extends Seeder{
                 DiplomaStudentSeeder::class,
                 AdminSeeder::class
             ]);
-        }
+        // }
     }
 }
