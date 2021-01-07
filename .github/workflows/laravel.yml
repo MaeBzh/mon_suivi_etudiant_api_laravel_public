@@ -40,6 +40,3 @@ jobs:
       heroku_app_name: "mon-suivi-etudiant"
       heroku_email: "maelenn.picaud@gmail.com"
       buildpack: "https://github.com/GerardBalaoro/heroku-buildpack-laravel.git"
-      script: |
-          heroku login
-          git push heroku master
