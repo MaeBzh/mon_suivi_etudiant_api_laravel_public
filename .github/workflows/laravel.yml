@@ -2,7 +2,7 @@ name: Laravel
 
 on:
   push:
-    branches: [ dev ]
+    branches: [ dev, master ]
   pull_request:
     branches: [ master ]
 
@@ -33,3 +33,13 @@ jobs:
         DB_CONNECTION: sqlite
         DB_DATABASE: database/database.sqlite
       run: vendor/bin/phpunit
+    - name: Deploy to Heroku
+    uses:akhileshns/heroku-deploy@v3.8.8
+    with:
+      heroku_api_key: ${{ secrets.HEROKU_API_KEY }}
+      heroku_app_name: "mon-suivi-etudiant"
+      heroku_email: "maelenn.picaud@gmail.com"
+      buildpack: "https://github.com/GerardBalaoro/heroku-buildpack-laravel.git"
+      script: |
+          heroku login
+          git push heroku master
