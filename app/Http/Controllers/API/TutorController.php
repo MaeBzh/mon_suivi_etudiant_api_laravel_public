@@ -4,7 +4,6 @@ namespace App\Http\Controllers\API;
 
 use App\Http\Controllers\Controller;
 use App\Http\Resources\TutorResource;
-use App\Models\Address;
 use App\Models\Company;
 use App\Models\Tutor;
 use App\Repositories\AddressRepository;
@@ -19,6 +18,7 @@ class TutorController extends Controller
 {
     protected TutorRepository $tutorRepo;
     protected UserRepository $userRepo;
+    protected AddressRepository $addressRepo;
     protected CompanyRepository $companyRepo;
 
     public function __construct()

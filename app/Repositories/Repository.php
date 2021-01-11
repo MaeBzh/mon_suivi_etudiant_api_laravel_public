@@ -51,7 +51,7 @@ class Repository
      * @return Model
      */
     protected function store(array $data): Model
-    {     
+    {
         $this->fillData($data);
         $this->model->saveOrFail();
 

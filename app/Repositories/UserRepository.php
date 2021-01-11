@@ -26,11 +26,22 @@ class UserRepository extends Repository
      *
      * @return Model
      */
+    public function prepareAdminStore(array $data): User
+    {
+        return $this->prepareStore(array_merge($data, [
+            'is_admin' => true
+        ]));
+    }
+
+    /**
+     * Store a model in database.
+     *
+     * @return Model
+     */
     public function prepareStore(array $data): User
     {
         return $this->store(array_merge($data, [
-            'password' => Hash::make($data['password']),
-            'is_admin' => false
+            'password' => Hash::make($data['password'])
         ]));
     }
 
@@ -41,7 +52,7 @@ class UserRepository extends Repository
      */
     public function prepareUpdate(array $data): User
     {
-       return $this->update($data);
+        return $this->update($data);
     }
 
 
