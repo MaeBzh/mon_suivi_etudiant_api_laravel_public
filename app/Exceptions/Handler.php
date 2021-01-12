@@ -3,6 +3,8 @@
 namespace App\Exceptions;
 
 use Illuminate\Foundation\Exceptions\Handler as ExceptionHandler;
+use Illuminate\Http\Request;
+use Throwable;
 
 class Handler extends ExceptionHandler
 {
@@ -33,5 +35,18 @@ class Handler extends ExceptionHandler
     public function register()
     {
         //
+    }
+
+    public function render($request, Throwable $e)
+    {
+        /** @var Request $request */
+        if ($request->expectsJson() ) {
+            return response()->json([
+                'message' => $e->getMessage(),
+                'error' => $e,
+            ]);
+        }
+
+        return parent::render($request, $e);
     }
 }
