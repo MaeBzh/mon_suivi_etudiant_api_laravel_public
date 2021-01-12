@@ -2,7 +2,6 @@
 
 namespace App\Http\Requests;
 
-use Auth;
 use Illuminate\Foundation\Http\FormRequest;
 
 class RegisterRequest extends FormRequest
@@ -26,7 +25,8 @@ class RegisterRequest extends FormRequest
     {
         return [
             'user.email' => 'required|unique:users,email|email',
-            'user.password' => 'required|string|min:8',
+            'user.password' => 'required_with:confirmPassword|string|min:8',
+            'user.confirmPassword' => 'required|string|min:8',
             'user.firstname' => 'required|string',
             'user.lastname' => 'required|string',
             'user.phone' => 'required|string',
