@@ -6,6 +6,7 @@ use App\Http\Requests\LoginRequest;
 use App\Http\Requests\RegisterRequest;
 use App\Http\Resources\TutorResource;
 use App\Models\Company;
+use App\Models\Tutor;
 use App\Models\User;
 use App\Repositories\AddressRepository;
 use App\Repositories\CompanyRepository;
@@ -36,13 +37,14 @@ class AuthController extends Controller
     {
         if (Auth::attempt($request->only(['email', 'password']), $request->filled('remember'))) {
             $user = User::query()->whereEmail($request->email)->first();
-            if ($user) {
+            $tutor = Tutor::query()->where('user_id', $user->getKey())->first();
+            if ($tutor) {
                 $tokenResult = $user->createToken('authToken')->plainTextToken;
                 return response()->json([
                     'status_code' => 200,
                     'access_token' => $tokenResult,
                     'token_type' => 'Bearer',
-                    'connected_user' => $user
+                    'connected_user' => $tutor
                 ]);
             };
         }
