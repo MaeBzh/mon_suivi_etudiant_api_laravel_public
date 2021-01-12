@@ -86,6 +86,7 @@ class AddressTest extends TestCase
                 'data' => $data
             ]);
 
+
         $this->actingAs($this->unauthorizedUser)->postJson('/api/addresses', $data)
             ->assertForbidden();
     }

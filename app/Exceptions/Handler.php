@@ -2,8 +2,11 @@
 
 namespace App\Exceptions;
 
+use App\Helpers\HttpResponse;
+use Illuminate\Auth\Access\AuthorizationException;
 use Illuminate\Foundation\Exceptions\Handler as ExceptionHandler;
 use Illuminate\Http\Request;
+use Illuminate\Validation\ValidationException;
 use Throwable;
 
 class Handler extends ExceptionHandler
@@ -40,11 +43,17 @@ class Handler extends ExceptionHandler
     public function render($request, Throwable $e)
     {
         /** @var Request $request */
-        if ($request->expectsJson() ) {
+        if ($request->expectsJson()) {
+            if ($e instanceof ValidationException) {
+                return response()->json($e->errors(), $e->status);
+            }
+
+            $errorCode = $e instanceof AuthorizationException ? 403 : $e->getCode();
+            $errorCode = HttpResponse::isValidHttpStatusCode($errorCode) ? $errorCode : 500;
             return response()->json([
                 'message' => $e->getMessage(),
                 'error' => $e,
-            ]);
+            ], $errorCode);
         }
 
         return parent::render($request, $e);
