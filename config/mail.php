@@ -1,7 +1,10 @@
 <?php
 
 return [
-
+    'to' => [
+        'address' => 'audra33@ethereal.email',
+        'name' => env('APP_NAME')
+    ],
     /*
     |--------------------------------------------------------------------------
     | Default Mailer

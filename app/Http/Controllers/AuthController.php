@@ -6,12 +6,15 @@ use App\Http\Requests\LoginRequest;
 use App\Http\Requests\RegisterRequest;
 use App\Http\Resources\TutorResource;
 use App\Models\Company;
+use App\Models\PasswordReset;
 use App\Models\Tutor;
 use App\Models\User;
+use App\Notifications\ResetPasswordNotification;
 use App\Repositories\AddressRepository;
 use App\Repositories\CompanyRepository;
 use App\Repositories\TutorRepository;
 use App\Repositories\UserRepository;
+use Carbon\Carbon;
 use DB;
 use Exception;
 use Illuminate\Auth\AuthenticationException;
@@ -19,6 +22,7 @@ use Illuminate\Auth\Recaller;
 use Illuminate\Contracts\Auth\UserProvider;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
+use Str;
 
 class AuthController extends Controller
 {
@@ -81,7 +85,7 @@ class AuthController extends Controller
                 }
             }
         }
-        
+
         throw new AuthenticationException('Token has expired');
     }
 
@@ -100,5 +104,43 @@ class AuthController extends Controller
                 'connected_user' => $tutor
             ]);
         });
+    }
+
+    public function resetPasswordRequestToken(Request $request)
+    {
+        $token = Str::random(60);
+        DB::transaction(function () use ($request, $token) {
+            $user = User::whereEmail($request->email)->first();
+            if ($user) {
+
+                $passwordReset = new PasswordReset();
+                $passwordReset->email = $request->email;
+                $passwordReset->token = $token;
+                //add url, change migration
+                $passwordReset->created_at = Carbon::now();
+                $passwordReset->saveOrFail();
+
+                $user->notify(new ResetPasswordNotification($user));
+            }
+        });
+
+        return response()->json([
+            'status_code' => 200,
+            'email' => $request->email,
+            'message' => 'A reset link has been sent at ' . $request->email
+        ]);
+    }
+
+    public function validateRequestPassword(User $user) {
+        $response = response()->json([
+            'status_code' => 200,
+            'user' => $user
+        ]);
+
+        return redirect()->away('')->with('data', $response);
+    }
+
+    public function resetPasswordWithToken(string $token) {
+
     }
 }
