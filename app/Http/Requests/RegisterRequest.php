@@ -30,7 +30,7 @@ class RegisterRequest extends FormRequest
             'user.firstname' => 'required|string',
             'user.lastname' => 'required|string',
             'user.phone' => 'required|string',
-            'user.rememberMe' => 'required|boolean',
+            'user.remember' => 'required|boolean',
             'company.name' => 'required|string',
             'company.address.address1' => 'required|string',
             'company.address.address' => 'nullable|string',

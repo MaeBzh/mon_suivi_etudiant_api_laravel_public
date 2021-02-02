@@ -29,6 +29,7 @@ use Illuminate\Support\Facades\Route;
 
 Route::post('/login', [AuthController::class, 'login']);
 Route::post('/register', [AuthController::class, 'register']);
+Route::post('/remember', [AuthController::class, 'remember']);
 
 Route::middleware('auth:sanctum')->group(function () {
     Route::apiResource('/users', UserController::class);

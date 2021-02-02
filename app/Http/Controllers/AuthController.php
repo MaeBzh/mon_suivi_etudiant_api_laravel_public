@@ -15,6 +15,8 @@ use App\Repositories\UserRepository;
 use DB;
 use Exception;
 use Illuminate\Auth\AuthenticationException;
+use Illuminate\Auth\Recaller;
+use Illuminate\Contracts\Auth\UserProvider;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 
@@ -35,21 +37,52 @@ class AuthController extends Controller
 
     public function login(LoginRequest $request)
     {
-        if (Auth::attempt($request->only(['email', 'password']), $request->filled('remember'))) {
-            $user = User::query()->whereEmail($request->email)->first();
-            $tutor = Tutor::query()->where('user_id', $user->getKey())->first();
+        if (Auth::attempt($request->only(['email', 'password'], $request->filled('remember')))) {
+            $user = User::query()->whereEmail($request->email)->firstOrFail();
+            $tutor = Tutor::query()->where('user_id', $user->getKey())->firstOrFail();
             if ($tutor) {
-                $tokenResult = $user->createToken('authToken')->plainTextToken;
-                return response()->json([
+                $data = [
                     'status_code' => 200,
-                    'access_token' => $tokenResult,
+                    'access_token' => $user->createToken('authToken')->plainTextToken,
                     'token_type' => 'Bearer',
                     'connected_user' => $tutor
-                ]);
+                ];
+
+                if ($request->filled('remember')) {
+                    $data['remember'] = $user->getAuthIdentifier() . '|' . $user->getRememberToken() . '|' . $user->getAuthPassword();
+                }
+
+                return response()->json($data);
             };
         }
 
         throw new AuthenticationException('Bad credentials');
+    }
+
+    public function remember(Request $request)
+    {
+        if ($request->filled('remember')) {
+            $remember = $request->input('remember');
+            $recaller = new Recaller($remember);
+            /** @var UserProvider $userProvider */
+            $userProvider = Auth::guard()->getProvider();
+            /** @var User $user */
+            $user = $userProvider->retrieveByToken($recaller->id(), $recaller->token());
+            if ($user) {
+                $tutor = Tutor::query()->where('user_id', $user->getKey())->first();
+                if ($tutor) {
+                    $tokenResult = $user->createToken('authToken')->plainTextToken;
+                    return response()->json([
+                        'status_code' => 200,
+                        'access_token' => $tokenResult,
+                        'token_type' => 'Bearer',
+                        'connected_user' => $tutor
+                    ]);
+                }
+            }
+        }
+        
+        throw new AuthenticationException('Token has expired');
     }
 
     public function register(RegisterRequest $request)

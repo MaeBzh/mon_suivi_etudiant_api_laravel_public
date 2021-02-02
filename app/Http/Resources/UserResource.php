@@ -19,7 +19,8 @@ class UserResource extends JsonResource
             'firstname' => $this->firstname,
             'lastname' => $this->lastname,
             'email' => $this->email,
-            'phone' => $this->phone
+            'phone' => $this->phone,
+            'remember_token'=> $this->remember_token
         ];
 
         return array_filter($result);
