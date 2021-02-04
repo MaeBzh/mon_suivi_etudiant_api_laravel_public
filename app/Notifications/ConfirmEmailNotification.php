@@ -2,23 +2,25 @@
 
 namespace App\Notifications;
 
-use App\Models\PasswordReset;
+use App\Models\EmailConfirm;
 use Illuminate\Bus\Queueable;
+use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Notifications\Messages\MailMessage;
 use Illuminate\Notifications\Notification;
 
-class ResetPasswordNotification extends Notification
+class ConfirmEmailNotification extends Notification
 {
     use Queueable;
 
+    protected $emailConfirm;
     /**
      * Create a new notification instance.
      *
      * @return void
      */
-    public function __construct()
+    public function __construct(EmailConfirm $emailConfirm)
     {
-        //
+        $this->emailConfirm = $emailConfirm;
     }
 
     /**
@@ -40,13 +42,12 @@ class ResetPasswordNotification extends Notification
      */
     public function toMail($notifiable)
     {
-        $token = PasswordReset::whereEmail($notifiable->email)->firstOrFail();
         return (new MailMessage)
-            ->subject('Reset password')
-            ->greeting('Hello ' . $notifiable->firstname . " " . $notifiable->lastname . ",")
-            ->line('To reset your password, please click on the following button')
-            ->action('Reset password', route('reset_password.validate', ['token' => $token ]))
-            ->line('Thank you for using our application!');
+        ->subject('Confirm email')
+        ->greeting('Hello ' . $notifiable->firstname . " " . $notifiable->lastname . ",")
+        ->line('To confirm your email, please click on the following button')
+        ->action('Confirm email', route('confirm_email', ['token' => $this->emailConfirm->token ]))
+        ->line('Thank you for using our application!');
     }
 
     /**

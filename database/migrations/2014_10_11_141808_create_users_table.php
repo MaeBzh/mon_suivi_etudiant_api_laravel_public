@@ -24,6 +24,7 @@ class CreateUsersTable extends Migration
             $table->timestamps();
             $table->string('firstname');
             $table->string('lastname');
+            $table->string('active')->default(false);
             $table->string('phone')->nullable();
         });
     }

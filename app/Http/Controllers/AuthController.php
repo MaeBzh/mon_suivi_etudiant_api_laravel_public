@@ -3,26 +3,26 @@
 namespace App\Http\Controllers;
 
 use App\Http\Requests\LoginRequest;
+use App\Http\Requests\PasswordResetStoreRequest;
+use App\Http\Requests\PasswordUpdateRequest;
 use App\Http\Requests\RegisterRequest;
-use App\Http\Resources\TutorResource;
-use App\Models\Company;
+use App\Models\EmailConfirm;
 use App\Models\PasswordReset;
-use App\Models\Tutor;
 use App\Models\User;
+use App\Notifications\ConfirmEmailNotification;
 use App\Notifications\ResetPasswordNotification;
 use App\Repositories\AddressRepository;
 use App\Repositories\CompanyRepository;
+use App\Repositories\EmailConfirmRepository;
+use App\Repositories\PasswordResetRepository;
 use App\Repositories\TutorRepository;
 use App\Repositories\UserRepository;
-use Carbon\Carbon;
 use DB;
-use Exception;
 use Illuminate\Auth\AuthenticationException;
 use Illuminate\Auth\Recaller;
 use Illuminate\Contracts\Auth\UserProvider;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
-use Str;
 
 class AuthController extends Controller
 {
@@ -30,6 +30,8 @@ class AuthController extends Controller
     protected UserRepository $userRepo;
     protected AddressRepository $addressRepo;
     protected CompanyRepository $companyRepo;
+    protected PasswordResetRepository $passResetRepo;
+    protected EmailConfirmRepository $emailConfirmRepo;
 
     public function __construct()
     {
@@ -37,26 +39,17 @@ class AuthController extends Controller
         $this->userRepo = new UserRepository();
         $this->addressRepo = new AddressRepository();
         $this->companyRepo = new CompanyRepository();
+        $this->passResetRepo = new PasswordResetRepository();
+        $this->emailConfirmRepo = new EmailConfirmRepository();
     }
 
     public function login(LoginRequest $request)
     {
-        if (Auth::attempt($request->only(['email', 'password'], $request->filled('remember')))) {
-            $user = User::query()->whereEmail($request->email)->firstOrFail();
-            $tutor = Tutor::query()->where('user_id', $user->getKey())->firstOrFail();
-            if ($tutor) {
-                $data = [
-                    'status_code' => 200,
-                    'access_token' => $user->createToken('authToken')->plainTextToken,
-                    'token_type' => 'Bearer',
-                    'connected_user' => $tutor
-                ];
-
-                if ($request->filled('remember')) {
-                    $data['remember'] = $user->getAuthIdentifier() . '|' . $user->getRememberToken() . '|' . $user->getAuthPassword();
-                }
-
-                return response()->json($data);
+        $remember = $request->filled('remember');
+        if (Auth::attempt($request->only('email', 'password'), $remember)) {
+            $user = User::query()->whereEmail($request->input('email'))->first();
+            if ($user) {
+                return $user->generateAuthResponse($remember);
             };
         }
 
@@ -67,22 +60,14 @@ class AuthController extends Controller
     {
         if ($request->filled('remember')) {
             $remember = $request->input('remember');
+            // transform cookie
             $recaller = new Recaller($remember);
             /** @var UserProvider $userProvider */
             $userProvider = Auth::guard()->getProvider();
             /** @var User $user */
             $user = $userProvider->retrieveByToken($recaller->id(), $recaller->token());
             if ($user) {
-                $tutor = Tutor::query()->where('user_id', $user->getKey())->first();
-                if ($tutor) {
-                    $tokenResult = $user->createToken('authToken')->plainTextToken;
-                    return response()->json([
-                        'status_code' => 200,
-                        'access_token' => $tokenResult,
-                        'token_type' => 'Bearer',
-                        'connected_user' => $tutor
-                    ]);
-                }
+                return $user->generateAuthResponse();
             }
         }
 
@@ -95,30 +80,30 @@ class AuthController extends Controller
             $user = $this->userRepo->prepareAdminStore($request->input('user'));
             $companyAddress = $this->addressRepo->prepareStore($request->input('company.address'));
             $company = $this->companyRepo->prepareStore($request->input('company'), $companyAddress);
-            $tutor = $this->tutorRepo->prepareStore($user, $company);
-            $tokenResult = $user->createToken('authToken')->plainTextToken;
-            return response()->json([
-                'status_code' => 200,
-                'access_token' => $tokenResult,
-                'token_type' => 'Bearer',
-                'connected_user' => $tutor
-            ]);
+            $this->tutorRepo->prepareStore($user, $company);
+            $emailConfirm = $this->emailConfirmRepo->prepareStore(['email' => $user->email, 'url' => $request->url]);
+            $user->notify(new ConfirmEmailNotification($emailConfirm));
+            return response()->json();
         });
     }
 
-    public function resetPasswordRequestToken(Request $request)
+    public function confirmEmail(string $token)
     {
-        $token = Str::random(60);
-        DB::transaction(function () use ($request, $token) {
+        return DB::transaction(function () use ($token){
+            $emailConfirm = EmailConfirm::whereToken($token)->firstOrFail();
+            $user = User::whereEmail($emailConfirm->email)->firstOrFail();
+            $this->userRepo->setModel($user)->activeAccount();
+            $this->userRepo->setModel($user)->verifyAccount();
+            return redirect()->away($emailConfirm->url)->with(['token'=> $token, 'email' => $user->email]);
+        });
+    }
+
+    public function resetPasswordRequestToken(PasswordResetStoreRequest $request)
+    {
+        DB::transaction(function () use ($request) {
             $user = User::whereEmail($request->email)->first();
             if ($user) {
-
-                $passwordReset = new PasswordReset();
-                $passwordReset->email = $request->email;
-                $passwordReset->token = $token;
-                //add url, change migration
-                $passwordReset->created_at = Carbon::now();
-                $passwordReset->saveOrFail();
+                $this->passResetRepo->prepareStore($request->all());
 
                 $user->notify(new ResetPasswordNotification($user));
             }
@@ -131,16 +116,24 @@ class AuthController extends Controller
         ]);
     }
 
-    public function validateRequestPassword(User $user) {
-        $response = response()->json([
-            'status_code' => 200,
-            'user' => $user
-        ]);
-
-        return redirect()->away('')->with('data', $response);
+    public function validateRequestPassword(string $token)
+    {
+        $passwordReset = PasswordReset::whereToken($token)->firstOrFail();
+        return redirect()->away($passwordReset->url)->with('token', $token);
     }
 
-    public function resetPasswordWithToken(string $token) {
+    public function updatePassword(PasswordUpdateRequest $request)
+    {
+        $passwordReset = PasswordReset::whereToken($request->token)->first();
+        if ($passwordReset) {
+            /** @var User $user */
+            $user = User::query()->with('tutor')->whereEmail($passwordReset->email)->first();
+            if ($user && $user->tutor) {
+                $updatedUser = $this->userRepo->setModel($user)->prepareUpdatePassword(['password' => $request->password]);
+                return $updatedUser->generateAuthResponse();
+            }
+        }
 
+        throw new AuthenticationException('Token is not valid');
     }
 }

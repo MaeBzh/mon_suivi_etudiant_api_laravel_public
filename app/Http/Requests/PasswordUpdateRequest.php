@@ -5,7 +5,7 @@ namespace App\Http\Requests;
 use Auth;
 use Illuminate\Foundation\Http\FormRequest;
 
-class AddressStoreRequest extends FormRequest
+class PasswordUpdateRequest extends FormRequest
 {
     /**
      * Determine if the user is authorized to make this request.
@@ -14,7 +14,7 @@ class AddressStoreRequest extends FormRequest
      */
     public function authorize()
     {
-        return Auth::user()->isTutor();
+        return true;
     }
 
     /**
@@ -25,10 +25,9 @@ class AddressStoreRequest extends FormRequest
     public function rules()
     {
         return [
-            'address1' => 'sometimes|string',
-            'address2' => 'nullable|string',
-            'zipcode' => 'sometimes|string|max:5',
-            'city' => 'sometimes|string'
+            'password' => 'required|string',
+            'confirmPassword' => 'required|string',
+            'token' => 'required|string'
         ];
     }
 }

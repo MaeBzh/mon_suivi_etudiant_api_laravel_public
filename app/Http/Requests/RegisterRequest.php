@@ -30,12 +30,13 @@ class RegisterRequest extends FormRequest
             'user.firstname' => 'required|string',
             'user.lastname' => 'required|string',
             'user.phone' => 'required|string',
-            'user.remember' => 'required|boolean',
             'company.name' => 'required|string',
             'company.address.address1' => 'required|string',
             'company.address.address' => 'nullable|string',
             'company.address.zipcode' => 'required|numeric',
             'company.address.city' => 'required|string',
+            // the callback url for sending the response
+            'url' => 'required|string'
         ];
     }
 }

@@ -6,7 +6,7 @@ use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Str;
 
-class PasswordReset extends Model
+class EmailConfirm extends Model
 {
     use HasFactory;
 

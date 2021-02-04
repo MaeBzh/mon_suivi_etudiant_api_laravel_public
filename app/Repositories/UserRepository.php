@@ -4,6 +4,7 @@
 namespace App\Repositories;
 
 use App\Models\User;
+use Carbon\Carbon;
 use Hash;
 use Illuminate\Database\Eloquent\Model;
 
@@ -55,7 +56,19 @@ class UserRepository extends Repository
         return $this->update($data);
     }
 
+    public function prepareUpdatePassword(array $data): User {
+        return $this->update(array_merge($data, [
+            'password' => Hash::make($data['password'])
+        ]));
+    }
 
+    public function activeAccount() {
+        return $this->update(['active' => true]);
+    }
+
+    public function verifyAccount() {
+        return $this->update(['email_verified_at' => Carbon::now()]);
+    }
 
     /**
      * Delete a model in database.

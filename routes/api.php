@@ -31,8 +31,9 @@ Route::post('/login', [AuthController::class, 'login']);
 Route::post('/register', [AuthController::class, 'register']);
 Route::post('/remember', [AuthController::class, 'remember']);
 Route::post('/reset_password_request_token', [AuthController::class, 'resetPasswordRequestToken']);
-Route::get('/reset_password_validate/{user}', [AuthController::class, 'validateRequestPassword'])->name('reset_password.validate');
-Route::post('/reset_password', [AuthController::class, 'resetPassword']);
+Route::get('/reset_password_validate/{token}', [AuthController::class, 'validateRequestPassword'])->name('reset_password.validate');
+Route::post('/update_password', [AuthController::class, 'updatePassword']);
+Route::get('/confirm_email/{token}', [AuthController::class, 'confirmEmail'])->name('confirm_email');
 
 Route::middleware('auth:sanctum')->group(function () {
     Route::apiResource('/users', UserController::class);

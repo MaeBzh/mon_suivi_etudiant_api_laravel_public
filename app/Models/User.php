@@ -65,4 +65,23 @@ class User extends Authenticatable
     public function scopeIsStudent(Builder $query){
         return $query->has('student');
     }
+
+    protected function createRememberToken() {
+        return $this->getAuthIdentifier() . '|' . $this->getRememberToken() . '|' . $this->getAuthPassword();
+    }
+
+    public function generateAuthResponse(bool $remember = false) {
+        $data = [
+            'status_code' => 200,
+            'access_token' => $this->createToken('authToken')->plainTextToken,
+            'token_type' => 'Bearer',
+            'connected_user' => $this->tutor
+        ];
+
+        if ($remember) {
+            $data['remember'] = $this->generateRememberToken();
+        }
+
+        return response()->json($data);
+    }
 }
