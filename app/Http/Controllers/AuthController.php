@@ -23,6 +23,9 @@ use Illuminate\Auth\Recaller;
 use Illuminate\Contracts\Auth\UserProvider;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
+use SebastianBergmann\Environment\Console;
+
+//TODO use event and listener to send notifications
 
 class AuthController extends Controller
 {
@@ -43,11 +46,16 @@ class AuthController extends Controller
         $this->emailConfirmRepo = new EmailConfirmRepository();
     }
 
+    //TODO : handle case when user has not confirm yet his account (send notification or prevent log in ?)
+    //TODO : repo for emailConfirm ?
     public function login(LoginRequest $request)
     {
         $remember = $request->filled('remember');
         if (Auth::attempt($request->only('email', 'password'), $remember)) {
             $user = User::query()->whereEmail($request->input('email'))->first();
+            if(EmailConfirm::whereEmail($user->email)->exists()) {
+                EmailConfirm::whereEmail($user->email)->delete();
+            }
             if ($user) {
                 return $user->generateAuthResponse($remember);
             };
@@ -74,6 +82,7 @@ class AuthController extends Controller
         throw new AuthenticationException('Token has expired');
     }
 
+
     public function register(RegisterRequest $request)
     {
         return DB::transaction(function () use ($request) {
@@ -89,12 +98,12 @@ class AuthController extends Controller
 
     public function confirmEmail(string $token)
     {
-        return DB::transaction(function () use ($token){
+        return DB::transaction(function () use ($token) {
             $emailConfirm = EmailConfirm::whereToken($token)->firstOrFail();
             $user = User::whereEmail($emailConfirm->email)->firstOrFail();
             $this->userRepo->setModel($user)->activeAccount();
             $this->userRepo->setModel($user)->verifyAccount();
-            return redirect()->away($emailConfirm->url)->with(['token'=> $token, 'email' => $user->email]);
+            return redirect()->away("{$emailConfirm->url}?token={$token}&email={$user->email}");
         });
     }
 
@@ -103,7 +112,7 @@ class AuthController extends Controller
         DB::transaction(function () use ($request) {
             $user = User::whereEmail($request->email)->first();
             if ($user) {
-                $this->passResetRepo->prepareStore($request->all());
+                $token = $this->passResetRepo->prepareStore($request->all());
 
                 $user->notify(new ResetPasswordNotification($user));
             }
@@ -119,7 +128,7 @@ class AuthController extends Controller
     public function validateRequestPassword(string $token)
     {
         $passwordReset = PasswordReset::whereToken($token)->firstOrFail();
-        return redirect()->away($passwordReset->url)->with('token', $token);
+        return redirect()->away("{$passwordReset->url}?token={$token}");
     }
 
     public function updatePassword(PasswordUpdateRequest $request)
@@ -135,5 +144,11 @@ class AuthController extends Controller
         }
 
         throw new AuthenticationException('Token is not valid');
+    }
+
+    public function verifyToken(Request $request)
+    {
+        $emailConfirm =  EmailConfirm::whereToken($request->token)->whereEmail($request->email)->firstOrFail();
+        return $emailConfirm ? response()->json(["valid" =>  true]) : response()->json(["valid" => false]);
     }
 }

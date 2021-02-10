@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use Illuminate\Auth\MustVerifyEmail;
 use Illuminate\Auth\Passwords\CanResetPassword;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
@@ -12,7 +13,7 @@ use Laravel\Sanctum\HasApiTokens;
 
 class User extends Authenticatable
 {
-    use HasApiTokens, HasFactory, Notifiable, SoftDeletes, CanResetPassword;
+    use HasApiTokens, HasFactory, Notifiable, SoftDeletes, CanResetPassword, MustVerifyEmail;
 
     /**
      * The attributes that are mass assignable.
@@ -79,7 +80,7 @@ class User extends Authenticatable
         ];
 
         if ($remember) {
-            $data['remember'] = $this->generateRememberToken();
+            $data['remember'] = $this->createRememberToken();
         }
 
         return response()->json($data);

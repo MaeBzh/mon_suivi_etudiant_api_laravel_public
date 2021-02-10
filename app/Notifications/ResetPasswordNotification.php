@@ -40,12 +40,12 @@ class ResetPasswordNotification extends Notification
      */
     public function toMail($notifiable)
     {
-        $token = PasswordReset::whereEmail($notifiable->email)->firstOrFail();
+        $passwordReset = PasswordReset::whereEmail($notifiable->email)->firstOrFail();
         return (new MailMessage)
             ->subject('Reset password')
             ->greeting('Hello ' . $notifiable->firstname . " " . $notifiable->lastname . ",")
             ->line('To reset your password, please click on the following button')
-            ->action('Reset password', route('reset_password.validate', ['token' => $token ]))
+            ->action('Reset password', route('reset_password.validate', ['token' => $passwordReset->token ]))
             ->line('Thank you for using our application!');
     }
 
