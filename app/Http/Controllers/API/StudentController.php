@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\API;
 
 use App\Http\Controllers\Controller;
+use App\Http\Requests\StudentStoreRequest;
 use App\Http\Resources\StudentResource;
 use App\Models\School;
 use App\Models\Student;
@@ -50,7 +51,7 @@ class StudentController extends Controller
      * @param  \Illuminate\Http\Request  $request
      * @return \Illuminate\Http\Response
      */
-    public function store(Request $request)
+    public function store(StudentStoreRequest $request)
     {
         $student = DB::transaction(function () use($request){
             $user = $this->userRepo->prepareStore($request->all());
@@ -90,7 +91,7 @@ class StudentController extends Controller
     public function update(Request $request, Student $student)
     {
         $updatedStudent = DB::transaction(function () use($request, $student){
-            
+
             $this->userRepo->setModel($student->user)->prepareUpdate($request->all());
             $this->studentRepo->setModel($student);
 

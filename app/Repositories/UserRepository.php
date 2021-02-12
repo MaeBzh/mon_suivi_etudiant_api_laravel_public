@@ -7,6 +7,7 @@ use App\Models\User;
 use Carbon\Carbon;
 use Hash;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Validation\Rules\Exists;
 
 class UserRepository extends Repository
 {
@@ -41,9 +42,13 @@ class UserRepository extends Repository
      */
     public function prepareStore(array $data): User
     {
-        return $this->store(array_merge($data, [
-            'password' => Hash::make($data['password'])
-        ]));
+        if(array_key_exists('password', $data)) {
+            return $this->store(array_merge($data, [
+                'password' => Hash::make($data['password'])
+            ]));
+        } else {
+            return $this->store($data);
+        }
     }
 
     /**
